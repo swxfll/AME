@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="text/javascript" src="./js/echarts.min.js"></script>
+    <script type="text/javascript" src="./js/flexible.js"></script>
+    <script src="EasyUI-JQuery/jquery.min.js" type="text/javascript"></script>
+    <script src="EasyUI-JQuery/jquery.easyui.min.js" type="text/javascript"></script>
+    <title>目视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        em,
+        i {
+            font-style: normal;
+        }
+
+        li {
+            list-style: none;
+        }
+
+        /*图片没有边框   去掉图片底侧的空白缝隙*/
+        img {
+            border: 0;
+            /*ie6*/
+            vertical-align: middle;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        a {
+            color: #666;
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: #e33333;
+        }
+
+        h4 {
+            font-weight: 400;
+        }
+
+        body {
+            background: url(./images/bg.jpg) no-repeat 0 0 / cover;
+
+        }
+
+        :root {
+            --timeout-response-color: rgb(235, 71, 71);
+            --unresponse-color: rgb(249, 190, 57);
+            --repairing-color: rgb(252, 132, 82);
+            --repaired-color: rgb(90, 181, 216);
+            --state-amount-border-color: rgb(0, 105, 208);
+            --area-border-color: #4c9bfd;
+        }
+
+        @keyframes bg--floor--unresponse {
+            from {
+                background-color: var(--timeout-response-color);
+            }
+
+            50% {
+                background-color: transparent;
+            }
+
+            to {
+                background-color: var(--timeout-response-color);
+            }
+        }
+
+        .timeout-response-sate {
+            background-color: var(--timeout-response-color);
+            animation: bg--floor--unresponse 2000ms infinite cubic-bezier(.07, -0.04, 1, 1);
+        }
+
+        /* // 实现rem适配 */
+        @media screen and (max-width: 1024px) {
+            html {
+                font-size: 51.2px !important;
+            }
+        }
+
+        /* js 24 => 1920/24=80 */
+        @media screen and (min-width: 1920px) {
+            html {
+                font-size: 96px !important;
+            }
+        }
+
+        #topTitle {
+            text-align: center;
+            font-size: 0.625rem;
+            color: #fff;
+        }
+
+        #topRight {
+            z-index: 999;
+            position: fixed;
+            top: 0.125rem;
+            right: 0.25rem;
+        }
+
+        #topRight img {
+            border: 2px solid var(--state-amount-border-color);
+            vertical-align: middle;
+            height: 0.5rem;
+            width: 0.5rem;
+            padding: 0.025rem;
+            cursor: pointer;
+            border-radius: 0.025rem;
+        }
+
+        #topRight img:hover {
+            border: 0.025rem solid #4c9bfd;
+            background-color: #4c9bfd;
+            transition: all .1s;
+            padding: 0;
+        }
+
+        /* contain 完全显示 */
+        .viewport {
+            display: flex;
+            min-width: 1024px;
+            max-width: 1920px;
+            margin: 0 auto;
+            padding: 0 0.275rem;
+        }
+
+        .viewport .column:nth-child(1) {
+            flex: 3;
+        }
+
+        .viewport .column:nth-child(2) {
+            flex: 5;
+        }
+
+        .viewport .column:nth-child(3) {
+            flex: 3;
+        }
+
+
+        /* 公共面板 */
+        .panel {
+            position: relative;
+            border: 0.1875rem solid transparent;
+            border-width: 0.6375rem 0.475rem 0.25rem 1.65rem;
+            border-image-source: url(./Images/border.png);
+            border-image-slice: 51 38 20 132;
+            margin-bottom: 0.25rem;
+        }
+
+        .inner {
+            position: absolute;
+            top: -0.7875rem;
+            left: -1.7875rem;
+            right: -0.6875rem;
+            bottom: -0.25rem;
+            padding: 0.3rem 0.45rem;
+        }
+
+        .panel h3 {
+            font-size: 0.25rem;
+            color: #fff;
+            font-weight: 400;
+        }
+
+        /* 面板高度,上面的 */
+        .one {
+            height: 3.9375rem;
+            width: 100%;
+        }
+
+        /* 面板高度,下面的 */
+        .two {
+            height: 4.25rem;
+            width: 100%;
+        }
+
+        #chartL1,
+        #chartL2,
+        #chartR1,
+        #chartR2,
+        #chartCB1,
+        #chartCB2 {
+            height: 100%;
+            height: 100%;
+        }
+
+        /* 目视化模块 */
+        .status {
+            height: 3.75rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            margin: 0 0.0625rem .4375rem 0.0625rem;
+        }
+
+        .status h3 {
+            line-height: 1;
+            padding: 0.2rem 0;
+            margin: 0;
+            font-size: 0.25rem;
+            color: #fff;
+            font-weight: 400;
+        }
+
+        .status .chart {
+            flex: 1;
+        }
+
+        .status .geo {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .status .grid {
+            display: grid;
+            width: 100%;
+            height: 100%;
+            grid-template-columns: 4.311rem 4.311rem;
+            grid-template-rows: 1.25rem 1.25rem 1.25rem 1.25rem;
+            grid-gap: 0.05rem;
+        }
+
+        .statusBottom {
+            flex-direction: row;
+            margin: 0 0.0625rem 0px 0.0625rem;
+            height: 3.75rem;
+            display: flex;
+        }
+
+        .c1 {
+            flex: 1;
+            margin-right: 0.0625rem;
+        }
+
+        .itmeOuter {
+            display: grid;
+            grid-template-columns: 15% 85%;
+            border: 0.0375rem solid var(--state-amount-border-color);
+            padding-left: 4px;
+            padding-top: 5px;
+        }
+
+        .itmeOuterState {
+            display: grid;
+            grid-template-columns: 25% 25% 25% 25%;
+            grid-template-rows: 40% 60%;
+            color: #fff;
+            border: 0.0375rem solid var(--state-amount-border-color);
+        }
+
+        .itmeOuterState div {
+            text-align: center;
+        }
+
+        .itmeOuterState div:nth-child(1),
+        .itmeOuterState div:nth-child(2),
+        .itmeOuterState div:nth-child(3),
+        .itmeOuterState div:nth-child(4) {
+            line-height: .47rem;
+            font-size: .25rem;
+            font-weight: bold;
+        }
+
+        .itmeOuterState div:nth-child(5),
+        .itmeOuterState div:nth-child(6),
+        .itmeOuterState div:nth-child(7),
+        .itmeOuterState div:nth-child(8) {
+            line-height: .70375rem;
+            font-size: .5rem;
+            font-weight: bold;
+        }
+
+        .itmeOuterState div:nth-child(1) {
+            background-color: var(--unresponse-color);
+            border-right: 0.0375rem solid var(--state-amount-border-color);
+            border-bottom: 0.0375rem solid var(--state-amount-border-color);
+        }
+
+        .itmeOuterState div:nth-child(2) {
+            background-color: var(--timeout-response-color);
+            border-right: 0.0375rem solid var(--state-amount-border-color);
+            border-bottom: 0.0375rem solid var(--state-amount-border-color);
+        }
+
+        .itmeOuterState div:nth-child(3) {
+            background-color: var(--repairing-color);
+            border-right: 0.0375rem solid var(--state-amount-border-color);
+            border-bottom: 0.0375rem solid var(--state-amount-border-color);
+        }
+
+        .itmeOuterState div:nth-child(4) {
+            background-color: var(--repaired-color);
+            border-bottom: 0.0375rem solid var(--state-amount-border-color);
+        }
+
+        .itmeOuterState div:nth-child(5) {
+            border-right: 0.0375rem solid var(--state-amount-border-color);
+        }
+
+        .itmeOuterState div:nth-child(6) {
+
+            border-right: 0.0375rem solid var(--state-amount-border-color);
+        }
+
+        .itmeOuterState div:nth-child(7) {
+
+            border-right: 0.0375rem solid var(--state-amount-border-color);
+        }
+
+        .itmeOuterState div:nth-child(8) {}
+
+
+        .childFloor {
+            overflow: hidden;
+            font-weight: bold;
+            font-size: .15rem;
+            width: 0.55rem;
+            height: 0.275rem;
+            background-color: #00153c;
+            text-align: center;
+            border: 0.025rem solid var(--area-border-color);
+            line-height: .2375rem;
+            color: #fff;
+        }
+
+        .childAreaFlex {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            width: 100%;
+            height: 0.275rem;
+            line-height: 0.2375rem;
+        }
+
+        .flex1,
+        .flex2 {
+            font-size: .15rem;
+            font-weight: bold;
+            overflow: hidden;
+            border: 0.025rem solid var(--area-border-color);
+            margin-right: 0.0625rem;
+            text-align: center;
+            cursor: pointer;
+            color: #fff;
+        }
+
+        .flex1 {
+            flex: 1;
+        }
+
+        .flex2 {
+            flex: 2;
+        }
+
+        #chartCB {
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+
+        #chartCBOne {
+            flex: 1;
+        }
+
+        #chartCBTwo {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="topTitle">XC-TPM维修目视看板</div>
+    <div id="topRight">
+        <img src="Images/icf_home.png" onclick="GoHome()" title="主页" />
+        <!--<img src="Images/icf_arrow_left.png" onclick="PrePage()" title="上一页" />-->
+        <img id="btnInterval" src="Images/icf_pause.png" onclick="ToggleInterval()" title="开始/暂停" />
+        <img src="Images/icf_refresh_sync.png" onclick="Refresh()" title="刷新" />
+        <img src="Images/icf_arrow_right.png" onclick="Redirect()" id="nextPage" title="下一页" />
+    </div>
+    <div class="viewport">
+        <div class="column">
+            <div class="panel one">
+                <div class="inner">
+                    <h3>生产单位维修实时动态图</h3>
+                    <div id="chartL1"></div>
+                </div>
+            </div>
+            <div class="panel two">
+                <div class="inner">
+                    <h3 id="chartL2Title">机器平均维修时间(MTTR/分钟)</h3>
+                    <div id="chartL2"></div>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="status">
+                <div class="chart">
+                    <div class="grid">
+                        <div class="itmeOuterState">
+                            <div>未响应</div>
+                            <div>超时</div>
+                            <div>维修中</div>
+                            <div>已完成</div>
+                            <div id="UnResponseCount"></div>
+                            <div id="TimeOuntCount"></div>
+                            <div id="RepairCount"></div>
+                            <div id="RepairSuccessCount"></div>
+                        </div>
+                        <div class="itmeOuter">
+                            <div class="childFloor">B5</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1">材料仓</div>
+                                <div class="flex1">MBU裁断区</div>
+                            </div>
+                            <div class="childFloor">B5</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1" id="area27" onclick="MachineState(27)">十八线</div>
+                                <div class="flex1" id="area28" onclick="MachineState(28)">十九线</div>
+                                <div class="flex1" id="area17" onclick="MachineState(17)">MBU样品室</div>
+                            </div>
+                            <div class="childFloor">B4</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1" id="area106" onclick="MachineState(106)">OKC</div>
+                                <div class="flex1" id="area24" onclick="MachineState(24)">十四线</div>
+                                <div class="flex1" id="area25" onclick="MachineState(25)">十六线</div>
+                                <div class="flex1" id="area26" onclick="MachineState(26)">十七线</div>
+                                <div class="flex1">高周波</div>
+                            </div>
+                        </div>
+                        <div class="itmeOuter">
+                            <div class="childFloor">A4</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1" id="area6" onclick="MachineState(6)">二十线</div>
+                                <div class="flex1" id="area7" onclick="MachineState(7)">二十一线</div>
+                                <div class="flex1">人机管控部</div>
+                            </div>
+                            <div class="childFloor">A3</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1">手工开裁</div>
+                                <div class="flex1" id="area5" onclick="MachineState(5)">五线</div>
+                                <div class="flex1" id="area16" onclick="MachineState(16)">ID线</div>
+                            </div>
+                            <div class="childFloor">A3</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1" id="area3" onclick="MachineState(3)">三线加工</div>
+                                <div class="flex1" id="area18" onclick="MachineState(18)">EMMA裁断</div>
+                                <div class="flex1" id="area29" onclick="MachineState(29)">二十二线</div>
+                            </div>
+                        </div>
+                        <div class="itmeOuter">
+                            <div class="childFloor">B3</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1" id="area11" onclick="MachineState(11)">九线</div>
+                                <div class="flex1" id="area21" onclick="MachineState(21)">十线</div>
+                                <div class="flex1" id="area22" onclick="MachineState(22)">十一线</div>
+                                <div class="flex1" id="area23" onclick="MachineState(23)">十二线</div>
+                                <div class="flex1">MBU</div>
+                            </div>
+                            <div class="childFloor">B2</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1" id="area109" onclick="MachineState(109)">贴底</div>
+                                <div class="flex1" id="area14" onclick="MachineState(14)">试做线</div>
+                                <div class="flex1" id="Div1" onclick="">准备组</div>
+                            </div>
+                            <div class="childFloor">B2</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1" id="area12" onclick="MachineState(12)">自动组底线</div>
+                                <div class="flex1" id="area112" onclick="MachineState(112)">转印区</div>
+                                <div class="flex1" id="area108" onclick="MachineState(108)">UV照射</div>
+                            </div>
+                        </div>
+                        <div class="itmeOuter">
+                            <div class="childFloor">A2</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1">片皮/电脑车</div>
+                                <div class="flex1">多工能针车</div>
+                            </div>
+                            <div class="childFloor">A2</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1" id="area15" onclick="MachineState(15)">电裁</div>
+                                <div class="flex1">热压</div>
+                                <div class="flex1">仓储</div>
+                                <div class="flex1">消耗品仓</div>
+                            </div>
+                            <div class="childFloor">A1</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1" id="area1" onclick="MachineState(1)">一线</div>
+                                <div class="flex1" id="area4" onclick="MachineState(4)">三线针车</div>
+                                <div class="flex1" id="area2" onclick="MachineState(2)">二线</div>
+                                <div class="flex1">电脑针车</div>
+                            </div>
+                        </div>
+                        <div class="itmeOuter">
+                            <div class="childFloor">B1</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1" id="area1000" onclick="MachineState(1000)">MMPCC</div>
+                                <div class="flex1">验货室/成品仓</div>
+                            </div>
+                            <div class="childFloor">B1</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1" id="area8" onclick="MachineState(8)">六线</div>
+                                <div class="flex1" id="area9" onclick="MachineState(9)">八线</div>
+                                <div class="flex1" id="area10" onclick="MachineState(10)">七线</div>
+                            </div>
+                            <div class="childFloor">总办</div>
+                            <div class="childAreaFlex">
+                                <div class="flex1">幕僚</div>
+                                <div class="flex1">开发</div>
+                                <div class="flex1">样品室</div>
+                                <div class="flex1">集团中心</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="statusBottom">
+                <div class="c1">
+                    <div class="panel two">
+                        <div class="inner">
+                            <h3 id="chartCB1Title"></h3>
+                            <div id="chartCB1"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="c1">
+                    <div class="panel two">
+                        <div class="inner">
+                            <h3 id="chartCB2Title"></h3>
+                            <div id="chartCB2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="panel one">
+                <div class="inner">
+                    <h3 style="margin-bottom: 0.125rem;">重点机台平均故障间隔时间(MTBF/天)</h3>
+                    <div id="chartR1"></div>
+                </div>
+            </div>
+            <div class="panel two">
+                <div class="inner">
+                    <h3 id="chartR2Title">机器月平均维修时间前5</h3>
+                    <div id="chartR2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script type="text/javascript">
+    //初始化
+    function Init() {
+        //获取工厂代号
+        $.ajax({
+            type: "post",
+            url: "AjaxVisualArea.ashx",
+            async: true,
+            cache: true,
+            dataType: "Text",
+            contentType: "application/x-www-form-urlencoded;charset=utf-8",
+            data: "Action=GetFactoryCode",
+            success: function (data) {
+                factoryCode = data;
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                //console.log(XMLHttpRequest.responseText);
+            }
+        });
+
+        //获取区域状态
+        GetAreaState();
+
+        //获取维修状态的数量
+        GetRepairCount();
+
+        //MTTR
+        GetMTTR(new Date().getFullYear());
+        $('#chartL2Title').html(new Date().getFullYear() + '年机器平均维修时间(MTTR/分钟)');
+
+        //MTBF(平均故障间隔时间/天)
+        GetMTBF();
+
+        //获取生产单位机台维修示意图数据
+        GetLineInUseAmountAndRepairAmount();
+
+        //机器平月均维修时间前5
+        GetTop5();
+        $('#chartR2Title').html(new Date().getFullYear() + '年' + (new Date().getMonth() + 1) + '月机器平均维修时间前5(分/次)');
+
+        //重点机台维修目视图
+        GetEmphasisMachineRepairVisual();
+
+        StartInterval();
+
+        setInterval("F5()", 10 * 1000)
+    }
+    $(document).ready(Init());
+
+    function F5() {
+        //获取区域状态
+        GetAreaState();
+
+        //获取维修状态的数量
+        GetRepairCount();
+
+        //MTTR
+        GetMTTR(new Date().getFullYear());
+
+        //MTBF(平均故障间隔时间/天)
+        GetMTBF();
+
+        //获取生产单位机台维修示意图数据
+        GetLineInUseAmountAndRepairAmount();
+
+        //机器平月均维修时间前5
+        GetTop5();
+
+        //重点机台维修目视图
+        GetEmphasisMachineRepairVisual();
+    }
+    //获取区域状态
+    function GetAreaState() {
+        $.ajax({
+            type: "post",
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+            url: "AjaxVisualArea.ashx",
+            async: true,
+            cache: false,
+            dataType: "json",
+            data: "action=GetAreaState",
+            success: function (data) {
+                if (data.total != 0) {
+                    var rowsData = data.rows;
+                    for (var i = 0; i < rowsData.length; i++) {
+                        //StateCode 0 --超时未响应 1 --指定时间内未响应  2 --维修中 3 --已完成
+                        if (rowsData[i].StateCode == 0) {
+                            //$('#area' + rowsData[i].AreaId).css('background-color', 'rgb(235, 71, 71)');
+                            $('#area' + rowsData[i].AreaId).addClass('timeout-response-sate');
+                        } else if (rowsData[i].StateCode == 1) {
+                            $('#area' + rowsData[i].AreaId).css('background-color', 'rgb(249, 190, 57)');
+                        } else if (rowsData[i].StateCode == 2) {
+                            $('#area' + rowsData[i].AreaId).css('background-color', 'rgb(252, 132, 82)');
+                        } else if (rowsData[i].StateCode == 3) {
+                            $('#area' + rowsData[i].AreaId).css('background-color', 'rgb(90, 181, 216)');
+                        }
+                    }
+                } else {
+                }
+            },
+            error: function () {
+                //$('#dataList').datagrid('loaded', true);
+                return;
+            }
+        })
+    }
+
+    //获取维修状态的数量
+    function GetRepairCount() {
+
+        $('#UnResponseCount').html(10);
+        $('#TimeOuntCount').html(20);
+        $('#RepairCount').html(30);
+        $('#RepairSuccessCount').html(40);
+
+        $.ajax({
+            type: "post",
+            url: "AjaxVisualArea.ashx",
+            async: true,
+            cache: false,
+            dataType: "Text",
+            contentType: "application/x-www-form-urlencoded;charset=utf-8",
+            data: "Action=GetRepairCount",
+            success: function (response) {
+                var response = eval("(" + response + ")");
+                if (response.success) {
+                    $('#UnResponseCount').html(response.data.UnResponseCount);
+                    $('#TimeOuntCount').html(response.data.TimeOuntCount);
+                    $('#RepairCount').html(response.data.RepairCount);
+                    $('#RepairSuccessCount').html(response.data.RepairSuccessCount);
+                }
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                //console.log(XMLHttpRequest.responseText);
+            }
+        });
+    }
+
+    function MachineState(pLineSequence) {
+        location.href = "VisualAreaChart.aspx?pLineSequence=" + pLineSequence + "&pFrom=1&rnd=" + Math.random();
+    }
+
+    //获取生产单位机台维修示意图数据
+    function GetLineInUseAmountAndRepairAmount() {
+        $.ajax({
+            type: "post",
+            url: "AjaxVisualArea.ashx",
+            async: true,
+            cache: false,
+            dataType: "Text",
+            contentType: "application/x-www-form-urlencoded;charset=utf-8",
+            data: "Action=GetLineInUseAmountAndRepairAmount",
+            success: function (data) {
+                var data = eval("(" + data + ")");
+                if (data.total > 0) {
+                    LineInUseAmountAndRepairAmount(data.inUseMachineAmount, data.RepairTotalTime, data.bigLine);
+                } else {
+                    LineInUseAmountAndRepairAmount([], []);
+                }
+
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                //alert(XMLHttpRequest.responseText);
+            }
+        });
+    }
+
+    //MTTR
+    function GetMTTR(pYear) {
+        $.ajax({
+            type: "post",
+            url: "AjaxVisualArea.ashx",
+            async: true,
+            cache: false,
+            dataType: "Text",
+            contentType: "application/x-www-form-urlencoded;charset=utf-8",
+            data: "Action=GetRepairMTTR&pYear=" + pYear,
+            success: function (data) {
+                var data = eval("(" + data + ")");
+                if (data.total > 0) {
+                    MTTR(data.mttr, data.mttrGoal);
+                } else {
+                    MTTR([], 0, []);
+                }
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                //alert(XMLHttpRequest.responseText);
+            }
+        });
+    }
+
+    //MTBF(平均故障间隔时间/天)
+    function GetMTBF() {
+        $.ajax({
+            type: "post",
+            url: "AjaxVisualArea.ashx",
+            async: true,
+            cache: false,
+            dataType: "Text",
+            contentType: "application/x-www-form-urlencoded;charset=utf-8",
+            data: "Action=GetMTBF",
+            success: function (data) {
+                var data = eval("(" + data + ")");
+                if (data.total > 0) {
+                    MTBF(data.names, data.avgTimes);
+                } else {
+                    MTBF([], []);
+                }
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                //alert(XMLHttpRequest.responseText);
+            }
+        });
+    }
+
+    //机器平月均维修时间前5
+    function GetTop5() {
+        $.ajax({
+            type: "post",
+            url: "AjaxVisualArea.ashx",
+            async: true,
+            cache: false,
+            dataType: "Text",
+            contentType: "application/x-www-form-urlencoded;charset=utf-8",
+            data: "Action=GetMonthAVGRepairTimeTop5",
+            success: function (data) {
+                var data = eval("(" + data + ")");
+                if (data.total > 0) {
+                    var newArr = [];
+                    for (var i = 0; i < data.total; i++) {
+                        var obj = {};
+                        obj.value = data.Time[i];
+                        obj.name = data.CName[i];
+                        newArr.push(obj);
+                    }
+                    TOP5(newArr);
+                } else {
+                    TOP5([]);
+                }
+
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                //console.log(XMLHttpRequest.responseText);
+            }
+        });
+    }
+
+    //保养执行率
+    function GetMaintainExecuteRate(pYear) {
+        $.ajax({
+            type: "post",
+            url: "AjaxVisualArea.ashx",
+            async: false,
+            cache: false,
+            dataType: "Text",
+            contentType: "application/x-www-form-urlencoded;charset=utf-8",
+            data: "Action=GetMaintainExecuteRate&pYear=" + pYear,
+            success: function (data) {
+                var data = eval("(" + data + ")");
+                if (data.total > 0) {
+                    MaintainExecuteRate(data.data, data.pYear)
+                } else {
+                    MaintainExecuteRate([], [])
+                }
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                //console.log(XMLHttpRequest.responseText);
+            }
+        });
+    }
+
+    //保养达成进度
+    function GetMaintainReachRate(pUsageId) {
+        $.ajax({
+            type: "post",
+            url: "AjaxVisualArea.ashx",
+            async: false,
+            cache: false,
+            dataType: "Text",
+            contentType: "application/x-www-form-urlencoded;charset=utf-8",
+            data: "Action=GetMaintainReachRate&pUsageId=" + pUsageId,
+            success: function (data) {
+                var data = eval("(" + data + ")");
+                if (data.total > 0) {
+                    MaintainReachRate(data.rate, data.cName);
+                } else {
+                    //MaintainReachRate([], []);
+                }
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                //console.log(XMLHttpRequest.responseText);
+            }
+        });
+    }
+
+    //重点机台维修目视图
+    function GetEmphasisMachineRepairVisual() {
+        $.ajax({
+            type: "post",
+            url: "AjaxVisualArea.ashx",
+            async: true,
+            cache: false,
+            dataType: "Text",
+            contentType: "application/x-www-form-urlencoded;charset=utf-8",
+            data: "Action=GetEmphasisMachineRepairVisual",
+            success: function (response) {
+                var response = eval("(" + response + ")");
+                if (response.success) {
+                    if (response.data.A0 != undefined) {
+                        $('#chartCB1Title').html(response.data.A0.name + "维修目视图(分)");
+                        EmphasisMachineRepairVisualA0(response.data.A0.data);
+                    } else {
+                        $('#chartCB1Title').html("未设置");
+                        EmphasisMachineRepairVisualA0({});
+                    }
+
+                    if (response.data.A1 != undefined) {
+                        $('#chartCB2Title').html(response.data.A1.name + "维修目视图(分)");
+                        EmphasisMachineRepairVisualA1(response.data.A1.data);
+                    } else {
+                        $('#chartCB2Title').html("未设置");
+                        EmphasisMachineRepairVisualA1({});
+                    }
+                }
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                //console.log(XMLHttpRequest.responseText);
+            }
+        });
+    }
+
+    var interval;
+    function ToggleInterval() {
+        if (interval) {
+            StopInterval();
+        } else {
+            StartInterval();
+        }
+    }
+
+    function StartInterval() {
+        interval = setInterval("Redirect()", 60 * 1000);
+        $("#btnInterval").attr("src", "Images/icf_pause.png");
+    }
+
+    function StopInterval() {
+        clearInterval(interval);
+        interval = undefined;
+        $("#btnInterval").attr("src", "Images/icf_play.png");
+    }
+
+    //机器平月均维修时间前5
+    function TOP5(newArr) {
+        var myChart = echarts.init(document.getElementById("chartR2"));
+        var option = {
+            tooltip: {
+                trigger: "item",
+                formatter: "{a} <br/>{b} : {c} ({d}%)"
+            },
+            color: ["#0076ff", "#60cda0", "#ed8884", "#ff9f7f", "#0096ff", "#9fe6b8", "#32c5e9", "#1d9dff"],
+            series: [
+                {
+                    name: "维修时长前5",
+                    type: "pie",
+                    radius: "55%", //半径,内圆半径和外圆半径
+                    data: newArr,
+                    // data: [
+                    //     { value: 100, name: "ATOM切割机" },
+                    //     { value: 80, name: "贸隆电脑裁断机" },
+                    //     { value: 50, name: "传能拉帮机" },
+                    //     { value: 90, name: "启翔拉帮机" },
+                    //     { value: 40, name: "启翔四本车" }
+                    // ],
+                    labelLine: {
+                        length: 10,
+                        length2: 10
+                    },
+                    label: {
+                        show: true,
+                        fontSize: 10
+                    },
+                    label: {
+                        show: true,
+                        color: '#fff',
+                        fontSize: 12,
+                        formatter: function (arg) {
+                            return arg.name + '\n ' + arg.value + '分钟';
+                        }
+                    }
+                }
+            ]
+        };
+
+        myChart.setOption(option);
+        window.addEventListener("resize", function () {
+            myChart.resize();
+        });
+    }
+
+    //MTBF
+    function MTBF(cNames, avgTimes) {
+        var myChart = echarts.init(document.getElementById("chartR1"));
+        var option = {
+            color: new echarts.graphic.LinearGradient(
+                0, 0, 0, 1,
+                [
+                    { offset: 0, color: "#00fffb" }, // 0 起始颜色
+                    { offset: 1, color: "#0061ce" } // 1 结束颜色
+                ]
+            ),
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross',
+                    crossStyle: {
+                        color: '#999'
+                    }
+                }
+            },
+            toolbox: {
+                feature: {
+                    magicType: {
+                        type: ['bar', 'line'] //图表切换
+                    }
+                }
+            },
+            grid: {
+                left: "0%",
+                right: "3%",
+                bottom: "3%",
+                top: "3%",
+                containLabel: true,
+                show: true,
+                borderColor: "rgba(0, 240, 255, 0.3)"
+            },
+            xAxis: [
+                {
+                    type: "category",
+                    data: cNames,
+                    //data: ["帆宣ACO","KASUV自动UV照射机","进益三合一压机","ATOM切割机","鸿宇B段流水线","贸隆电脑裁断机","大族粤铭切割机","爱玛卷料切割机","爱玛皮料切割机"],
+                    axisTick: {
+                        alignWithLabel: false,
+                        show: false
+                    },
+                    axisLabel: {
+                        color: "#fff",
+                        clickable: true,
+                        interval: 0,
+                        rotate: 30,
+                        fontSize: 12,
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: "rgba(0, 240, 255, 0.3)"
+                        }
+                    }
+                }
+            ],
+            yAxis: [
+                {
+                    type: "value",
+                    axisTick: {
+                        alignWithLabel: false,
+                        show: false
+                    },
+                    axisLabel: {
+                        color: "#fff"
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: "rgba(0, 240, 255, 0.3)"
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: "rgba(0, 240, 255, 0.3)"
+                        }
+                    }
+                }
+            ],
+            series: [
+                {
+                    name: "平均故障间隔时间",
+                    type: "bar",
+                    barWidth: "60%",
+                    data: avgTimes,
+                    //data: [553,302,89,85,85,38,38,11,10],
+                    label: {
+                        show: true,
+                    }
+                }
+            ],
+            label: {
+                show: true,
+                position: 'inside',
+                color: '#fff',
+                fontSize: 12,
+                formatter: function (arg) {
+                    if (arg.value == 0) {
+                        return '';
+                    } else {
+                        return arg.value;
+                    }
+                }
+            }
+        };
+        myChart.setOption(option);
+        window.addEventListener("resize", function () {
+            myChart.resize();
+        });
+    }
+
+    // 生产单位维修实时动态图
+    LineInUseAmountAndRepairAmount([],[])
+    function LineInUseAmountAndRepairAmount(inUseMachineAmount, RepairTotalTime, bigLine) {
+        var myChart = echarts.init(document.getElementById("chartL1"));
+        var option;
+
+        //获取最大值
+        var max = 0;
+        if (inUseMachineAmount != null && inUseMachineAmount != []) {
+            max = inUseMachineAmount[0];
+            for (var i = 0; i < inUseMachineAmount.length; i++) {
+                max = max < inUseMachineAmount[i + 1] ? inUseMachineAmount[i + 1] : max;
+            }
+        }
+
+        var max2 = 0;
+        if (RepairTotalTime != null && RepairTotalTime != []) {
+            max2 = RepairTotalTime[0];
+            for (var i = 0; i < RepairTotalTime.length; i++) {
+                max2 = max2 < RepairTotalTime[i + 1] ? RepairTotalTime[i + 1] : max2;
+            }
+        }
+
+        var max3 = max > max2 ? max : max2;
+
+        let data1 = [100,100,100,100,100,100,181,100,100];
+        // let data1 = inUseMachineAmount;
+        let data2 = [100,100,100,100,100,100,181,100,100];
+        // let data2 = RepairTotalTime;
+        let xAxisData = ["生产10线","生产11线","生产12线","生产14线","生产16线","生产17线","生产1线","生产20线","生产21线"];
+        // let xAxisData = bigLine;
+
+        option = {
+            dataZoom: [{
+                type: 'inside', //,slider
+                xAxisIndex: 0,
+            }],
+            tooltip: {
+                trigger: "axis",
+                axisPointer: {
+                    type: 'cross',
+                    crossStyle: {
+                        color: '#999'
+                    }
+                }
+            },
+            toolbox: {
+                feature: {
+                    magicType: {
+                        type: ['bar', 'line']
+                    }
+                }
+            },
+            grid: {
+                left: "0%",
+                right: "3%",
+                bottom: "3%",
+                top: "3%",
+                containLabel: true,
+                show: true,
+                borderColor: "rgba(0, 240, 255, 0.3)"
+            },
+            xAxis: {
+                slient: false,
+                triggerEvent: true,
+                data: xAxisData,
+                axisLabel: {
+                    color: "#fff",
+                    clickable: true,
+                    interval: 0,
+                    rotate: 45,
+                    fontSize: 12,
+                },
+            },
+            yAxis: [
+                {
+                    min: 0,
+                    max: max3 + 20,
+                    type: "value",
+                    axisTick: {
+                        alignWithLabel: false,
+                        show: false
+                    },
+                    axisLabel: {
+                        color: "#fff"
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: "rgba(0, 240, 255, 0.3)"
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: "rgba(0, 240, 255, 0.3)"
+                        }
+                    }
+                }
+            ],
+            series: [
+                {
+                    name: '机台数量',
+                    type: 'bar',
+                    stack: 'all', //堆叠
+                    data: data1,
+                    color: new echarts.graphic.LinearGradient(
+                        0, 0, 0, 1,
+                        [
+                            { offset: 0, color: "#00fffb" },
+                            { offset: 1, color: "#0061ce" }
+                        ]
+                    ),
+                },
+                {
+                    name: '维修时间',
+                    type: 'line',
+                    data: data2,
+                    color: ['rgb(235, 71, 71)'],
+                }
+            ],
+            label: {
+                show: true,
+                position: 'inside',
+                color: '#fff',
+                fontSize: 12,
+                formatter: function (arg) {
+                    if (arg.value == 0) {
+                        return '';
+                    } else {
+                        return arg.value;
+                    }
+                }
+            }
+        };
+
+        myChart.setOption(option);
+        window.addEventListener("resize", function () {
+            myChart.resize();
+        });
+    };
+
+    //XC厂区机器平均维修时间(MTTR/分钟
+    function MTTR(mttr, mttrGoal) {
+        var myChart = echarts.init(document.getElementById("chartL2"));
+        var app = {};
+        var option;
+
+        //获取目标最大值
+        //        var max = 0;
+        //        if (mttrGoal != null && mttrGoal != []) {
+        //            max = mttrGoal[0];
+        //            for (var i = 0; i < mttrGoal.length; i++) {
+        //                max = max < mttrGoal[i + 1] ? mttrGoal[i + 1] : max;
+        //            }
+        //        }
+
+        //        var max2 = 0;
+        //        if (mttr != null && mttr != []) {
+        //            max2 = mttr[0];
+        //            for (var i = 0; i < mttr.length; i++) {
+        //                max2 = max2 < mttr[i + 1] ? mttr[i + 1] : max2;
+        //            }
+        //        }
+
+        //        var max3 = max > max2 ? max : max2;
+
+        let xAxisData = [];
+        for (let i = 0; i < 12; i++) {
+            xAxisData.push(i + 1 + '');
+        }
+
+        option = {
+            color: ['#5470c6', 'rgb(235, 71, 71)'],
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross',
+                    crossStyle: {
+                        color: '#999'
+                    }
+                }
+            },
+            toolbox: {
+                feature: {
+                    magicType: {
+                        type: ['bar', 'line']
+                    }
+                }
+            },
+            grid: {
+                left: "0%",
+                right: "7%",
+                bottom: "3%",
+                top: "3%",
+                containLabel: true,
+                show: true,
+                borderColor: "rgba(0, 240, 255, 0.3)"
+            },
+            xAxis: { //category必须通过data设置类目轴数据,value,数值轴,自动从series中国读取数据
+                type: 'category', //xxxxxxxxxxxxxxxxxxxx
+                data: xAxisData,
+                slient: false,
+                triggerEvent: true,
+                name: '月',
+                nameTextStyle: { fontSize: 15, padding: [0, 0, 0, -10], color: '#fff' },
+                axisTick: {
+                    alignWithLabel: false,
+                    show: false
+                },
+                axisLine: {
+                    lineStyle: {
+                        color: "rgba(0, 240, 255, 0.3)"
+                    }
+                },
+                axisLabel: {
+                    color: "#fff",
+                    clickable: true,
+                    interval: 0,
+                    fontSize: 12,
+                }
+            },
+            yAxis: [
+                {
+                    type: "value",
+                    axisTick: {
+                        alignWithLabel: false,
+                        show: false
+                    },
+                    axisLabel: {
+                        color: "#fff"
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: "rgba(0, 240, 255, 0.3)"
+                            // width: 3
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: "rgba(0, 240, 255, 0.3)"
+                        }
+                    }
+                }
+            ],
+            series: [
+                {
+                    name: '平均时间',
+                    type: 'line',
+                    data: mttr,
+                    //data: [20.600, 35.70000000, 90.100000, 30, 40, 50],
+                    smooth: true,
+                    lineStyle: {
+                        color: '#4c9bfd'
+                    },
+
+                },
+                {
+                    name: '目标时间',
+                    type: 'line',
+                    //data: [60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,]
+                    data: mttrGoal,
+                    smooth: true,
+                    itemStyle: {
+                        normal: {
+                            label: {
+                                show: true,
+                                position: 'inside',
+                                color: '#fff',
+                                fontSize: 12,
+                            }
+                        }
+                    }
+                }
+            ],
+            label: {
+                show: true,
+                position: 'insideBottom',
+                color: '#fff',
+                fontSize: 12,
+            },
+        };
+
+        myChart.setOption(option);
+        window.addEventListener("resize", function () {
+            myChart.resize();
+        });
+    };
+
+    //重点机台保养执行率
+    function MaintainExecuteRate(rate, pYear) {
+        var myChart = echarts.init(document.getElementById("chartCB1"));
+        var app = {};
+        var option;
+
+        let xAxisData = [];
+        for (let i = 0; i < 12; i++) {
+            xAxisData.push(i + 1 + '');
+        }
+
+        option = {
+            color: new echarts.graphic.LinearGradient(
+                0, 0, 0, 1,
+                [
+                    { offset: 0, color: "#00fffb" },
+                    { offset: 1, color: "#0061ce" }
+                ]
+            ),
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross',
+                    crossStyle: {
+                        color: '#999'
+                    }
+                }
+            },
+            toolbox: {
+                feature: {
+                    magicType: {
+                        type: ['bar', 'line']
+                    }
+                }
+            },
+            grid: {
+                left: "0%",
+                right: "7%",
+                bottom: "3%",
+                top: "3%",
+                containLabel: true,
+                show: true,
+                borderColor: "rgba(0, 240, 255, 0.3)"
+            },
+            xAxis: {
+                slient: false,
+                triggerEvent: true,
+                data: xAxisData,
+                type: 'category',
+                name: '月',
+                nameTextStyle: { fontSize: 15, padding: [0, 0, 0, -10], color: '#fff' },
+                axisTick: {
+                    alignWithLabel: false,
+                    show: false
+                },
+                axisLabel: {
+                    color: "#fff",
+                    clickable: true,
+                    interval: 0,
+                    fontSize: 12,
+                },
+                axisLine: {
+                    lineStyle: {
+                        color: "rgba(0, 240, 255, 0.3)"
+                    }
+                }
+            },
+            yAxis: {
+                min: 0,
+                max: 120,
+                type: "value",
+                axisTick: {
+                    alignWithLabel: false,
+                    show: false
+                },
+                axisLabel: {
+                    color: "#fff",
+                    formatter: '{value}%',
+                },
+                axisLine: {
+                    lineStyle: {
+                        color: "rgba(0, 240, 255, 0.3)"
+                    }
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: "rgba(0, 240, 255, 0.3)"
+                    }
+                }
+            },
+            series: [
+                {
+                    data: rate,
+                    type: 'bar',
+                }
+            ],
+            label: {
+                show: true,
+                position: 'inside',
+                color: '#fff',
+                fontSize: 12,
+                formatter: function (arg) {
+                    if (arg.value == 0) {
+                        return '';
+                    } else {
+                        return arg.value;
+                    }
+                }
+            }
+        };
+
+        myChart.setOption(option);
+        window.addEventListener("resize", function () {
+            myChart.resize();
+        });
+    }
+
+    // 重点机台保养达成进度
+    function MaintainReachRate(rate, CName) {
+        var myChart = echarts.init(document.getElementById("chartCB2"));
+        var option = {
+            color: new echarts.graphic.LinearGradient(
+                0, 0, 0, 1,
+                [
+                    { offset: 0, color: "#00fffb" },
+                    { offset: 1, color: "#0061ce" }
+                ]
+            ),
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross',
+                    crossStyle: {
+                        color: '#999'
+                    }
+                }
+            },
+            toolbox: {
+                feature: {
+                    magicType: {
+                        type: ['bar', 'line']
+                    }
+                }
+            },
+            grid: {
+                left: "0%",
+                right: "3%",
+                bottom: "3%",
+                top: "3%",
+                containLabel: true,
+                show: true,
+                borderColor: "rgba(0, 240, 255, 0.3)"
+            },
+            xAxis: [
+                {
+                    type: "category",
+                    //data: ["帆宣ACO", ,"进益三合一压机","ATOM切割机","鸿宇B段流水线","贸隆电脑裁断机","大族粤铭切割机","爱玛皮料切割机"],
+                    data: CName,
+                    axisTick: {
+                        alignWithLabel: false,
+                        show: false
+                    },
+                    axisLabel: {
+                        color: "#fff",
+                        clickable: true,
+                        interval: 0,
+                        rotate: 30,
+                        fontSize: 12,
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: "rgba(0, 240, 255, 0.3)"
+                            // width: 3
+                        }
+                    }
+                }
+            ],
+            yAxis: [
+                {
+                    type: "value",
+                    min: 0,
+                    max: 120,
+                    axisTick: {
+                        alignWithLabel: false,
+                        show: false
+                    },
+                    axisLabel: {
+                        color: "#fff",
+                        formatter: '{value}%',
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: "rgba(0, 240, 255, 0.3)"
+                            // width: 3
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: "rgba(0, 240, 255, 0.3)"
+                        }
+                    }
+                }
+            ],
+            series: [
+                {
+                    name: "保养达成进度",
+                    type: "bar",
+                    barWidth: "60%",
+                    //data: [89,85,85,68,38,21,10,9],
+                    data: rate,
+                    label: {
+                        show: true,
+                    }
+                }
+            ],
+            label: {
+                show: true,
+                position: 'inside',
+                color: '#fff',
+                fontSize: 12
+            }
+        };
+        myChart.setOption(option);
+        window.addEventListener("resize", function () {
+            myChart.resize();
+        });
+    };
+
+    //重点机台维修目视图A0
+    function EmphasisMachineRepairVisualA0(A0) {
+        var myChartA0 = echarts.init(document.getElementById("chartCB1"));
+
+        var optionA0 = {
+            tooltip: {
+                trigger: "item",
+                formatter: function (parms) {
+                    if (parms.color == '#69e1b0') {
+                        return parms.seriesName + '<br/>' + '<span style="color: #69e1b0;">未有异常</span> ' + parms.name.split('-')[0] + '号 ' + (parms.name.split('-')[1] == undefined ? "" : parms.name.split('-')[1] + "分钟");
+                    } else if (parms.color == '#00a5ff') {
+                        return parms.seriesName + '<br/>' + '<span style="color: #00a5ff;">已完成</span> ' + parms.name.split('-')[0] + '号 ' + (parms.name.split('-')[1] == undefined ? "" : parms.name.split('-')[1] + "分钟");
+                    } else if (parms.color == '#fc8452') {
+                        return parms.seriesName + '<br/>' + '<span style="color: #fc8452;">维修中</span> ' + parms.name.split('-')[0] + '号 ' + (parms.name.split('-')[1] == undefined ? "" : parms.name.split('-')[1] + "分钟");
+                    } else if (parms.color == '#ffd13e') {
+                        return parms.seriesName + '<br/>' + '<span style="color: #ffd13e;">未来</span> ' + parms.name.split('-')[0] + '号 ' + (parms.name.split('-')[1] == undefined ? "" : parms.name.split('-')[1] + "分钟");
+                    } else {
+                        return parms.seriesName + '<br/>' + parms.name.split('-')[0] + '号 ' + (parms.name.split('-')[1] == undefined ? "" : parms.name.split('-')[1] + "分钟");
+                    }
+
+                }
+            },
+            series: [
+                {
+                    name: "重点机台维修目视图",
+                    type: "pie",
+                    radius: "55%",
+                    data: A0,
+                    //data: [{ value: 10, name: "1-10", itemStyle: { color: "#60cda0" } },{ value: 10, name: "2-10" },{ value: 10, name: "3-10" },{ value: 10, name: "4-" }],
+                    labelLine: {
+                        length: 12,
+                        length2: 12
+                    },
+                    label: {
+                        show: true,
+                        color: '#fff',
+                        fontSize: 12,
+                        formatter: function (arg) {
+                            if (arg.color == '#69e1b0') {
+                                return '{color0|' + arg.name + '}'
+                            } else if (arg.color == '#00a5ff') {
+                                return '{color1|' + arg.name + '}'
+                            } else if (arg.color == '#fc8452') {
+                                return '{color2|' + arg.name + '}'
+                            } else if (arg.color == '#ffd13e') {
+                                return '{color3|' + arg.name + '}'
+                            } else {
+                                return arg.name;
+                            }
+                        },
+                        "rich": {
+                            'color0': {
+                                'color': '#69e1b0'
+                            },
+                            'color1': {
+                                'color': '#00a5ff'
+                            },
+                            'color2': {
+                                'color': '#fc8452'
+                            },
+                            'color3': {
+                                'color': '#ffd13e'
+                            },
+                        }
+                    }
+                }
+            ]
+        };
+
+        myChartA0.setOption(optionA0);
+        window.addEventListener("resize", function () {
+            myChartA0.resize();
+        });
+    }
+
+    //重点机台维修目视图A1
+    function EmphasisMachineRepairVisualA1(A1) {
+        var myChartA1 = echarts.init(document.getElementById("chartCB2"));
+
+        var optionA1 = {
+            tooltip: {
+                trigger: "item",
+                formatter: function (parms) {
+                    if (parms.color == '#69e1b0') {
+                        return parms.seriesName + '<br/>' + '<span style="color: #69e1b0;">未有异常</span> ' + parms.name.split('-')[0] + '号 ' + (parms.name.split('-')[1] == undefined ? "" : parms.name.split('-')[1] + "分钟");
+                    } else if (parms.color == '#00a5ff') {
+                        return parms.seriesName + '<br/>' + '<span style="color: #00a5ff;">已完成</span> ' + parms.name.split('-')[0] + '号 ' + (parms.name.split('-')[1] == undefined ? "" : parms.name.split('-')[1] + "分钟");
+                    } else if (parms.color == '#fc8452') {
+                        return parms.seriesName + '<br/>' + '<span style="color: #fc8452;">维修中</span> ' + parms.name.split('-')[0] + '号 ' + (parms.name.split('-')[1] == undefined ? "" : parms.name.split('-')[1] + "分钟");
+                    } else if (parms.color == '#ffd13e') {
+                        return parms.seriesName + '<br/>' + '<span style="color: #ffd13e;">未来</span> ' + parms.name.split('-')[0] + '号 ' + (parms.name.split('-')[1] == undefined ? "" : parms.name.split('-')[1] + "分钟");
+                    } else {
+                        return parms.seriesName + '<br/>' + parms.name.split('-')[0] + '号 ' + (parms.name.split('-')[1] == undefined ? "" : parms.name.split('-')[1] + "分钟");
+                    }
+
+                }
+            },
+            series: [
+                {
+                    name: "重点机台维修目视图",
+                    type: "pie",
+                    radius: "55%",
+                    //data: A1,
+                    data: [{ value: 10, name: "1-10", itemStyle: { color: "#60cda0" } },{ value: 10, name: "2-10" },{ value: 10, name: "3-10" },{ value: 10, name: "4-" }],
+                    labelLine: {
+                        length: 12,
+                        length2: 12
+                    },
+                    label: {
+                        show: true,
+                        color: '#fff',
+                        fontSize: 12,
+                        formatter: function (arg) {
+                            if (arg.color == '#69e1b0') {
+                                return '{color0|' + arg.name + '}'
+                            } else if (arg.color == '#00a5ff') {
+                                return '{color1|' + arg.name + '}'
+                            } else if (arg.color == '#fc8452') {
+                                return '{color2|' + arg.name + '}'
+                            } else if (arg.color == '#ffd13e') {
+                                return '{color3|' + arg.name + '}'
+                            } else {
+                                return arg.name;
+                            }
+                        },
+                        "rich": {
+                            'color0': {
+                                'color': '#69e1b0'
+                            },
+                            'color1': {
+                                'color': '#00a5ff'
+                            },
+                            'color2': {
+                                'color': '#fc8452'
+                            },
+                            'color3': {
+                                'color': '#ffd13e'
+                            },
+                        }
+                    }
+                }
+            ]
+        };
+
+        myChartA1.setOption(optionA1);
+        window.addEventListener("resize", function () {
+            myChartA1.resize();
+        });
+    }
+
+    function GoHome() {
+        location.href = "./MainMenu.aspx?rnd=" + Math.random();
+    }
+
+    function Redirect() {
+        location.href = "VisualAreaInfo.aspx?rnd=" + Math.random();
+    }
+
+    function Refresh() {
+        location.href = "VisualAreaXCNew.aspx?&rnd=" + Math.random();
+    }
+
+    //快捷键
+    window.addEventListener('keydown', (event) => {
+        if (event.code === 'Home') {
+            GoHome();
+        } else if (event.code === 'ArrowLeft') {
+        } else if (event.code === 'ArrowRight') {
+            Redirect();
+        }
+    });
+</script>
+
+</html>
