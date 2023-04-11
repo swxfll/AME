@@ -2,4 +2,4 @@
 
 - A: ASP.Net 7
 - M: MongoDB
-- E: Echarts
+- E: Echarts 目视化
